@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,7 +15,8 @@ import {
   RiBankCardLine, 
   RiCloseLine, 
   RiCheckLine,
-  RiArrowRightLine
+  RiArrowRightLine,
+  RiLoader4Line
 } from "@remixicon/react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,80 +24,43 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
-
-// Mock Data
-const products = [
-  {
-    id: 1,
-    name: "Epiko Regal Starter Pack",
-    price: 29.99,
-    category: "Digital",
-    image: "https://images.unsplash.com/photo-1611996575749-79a3a250f948?w=800&q=80",
-    description: "Get a head start with 500 Gems, 2 Rare Chests, and an exclusive avatar frame.",
-    rating: 4.8
-  },
-  {
-    id: 2,
-    name: "Legendary Dragon Skin",
-    price: 14.99,
-    category: "Skins",
-    image: "https://images.unsplash.com/photo-1642543492481-44e81e3914a7?w=800&q=80",
-    description: "Equip your Dragon unit with this terrifying magma-infused skin.",
-    rating: 4.9
-  },
-  {
-    id: 3,
-    name: "Epiko Hoodie - Black",
-    price: 59.99,
-    category: "Merch",
-    image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800&q=80",
-    description: "Premium cotton blend hoodie with embroidered Epiko logo. Comfortable and stylish.",
-    rating: 4.7
-  },
-  {
-    id: 4,
-    name: "Karma Booster (7 Days)",
-    price: 9.99,
-    category: "Digital",
-    image: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80",
-    description: "Double your Karma earnings for 7 days. Level up faster!",
-    rating: 4.5
-  },
-  {
-    id: 5,
-    name: "Limited Edition Snapback",
-    price: 24.99,
-    category: "Merch",
-    image: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&q=80",
-    description: "Adjustable snapback cap featuring the iconic Epiko emblem.",
-    rating: 4.6
-  },
-  {
-    id: 6,
-    name: "Battle Pass: Season 4",
-    price: 19.99,
-    category: "Digital",
-    image: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81?w=800&q=80",
-    description: "Unlock premium rewards, exclusive skins, and more throughout Season 4.",
-    rating: 4.9
-  }
-];
+import { useAuth } from "@/contexts/AuthContext";
+import { getMarketItems, purchaseItem, MarketItem } from "@/lib/api/market";
 
 interface CartItem {
-  id: number;
+  id: string;
   quantity: number;
-  product: typeof products[0];
+  product: MarketItem;
 }
 
 export default function MarketPage() {
+  const { user } = useAuth();
+  const [products, setProducts] = useState<MarketItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<MarketItem | null>(null);
 
-  const addToCart = (product: typeof products[0]) => {
+  useEffect(() => {
+    async function loadMarketItems() {
+      try {
+        const items = await getMarketItems();
+        setProducts(items);
+      } catch (error) {
+        console.error("Error loading market items:", error);
+        toast.error("Failed to load market items");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadMarketItems();
+  }, []);
+
+  const addToCart = (product: MarketItem) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
@@ -109,11 +73,11 @@ export default function MarketPage() {
     toast.success(`Added ${product.name} to cart`);
   };
 
-  const removeFromCart = (id: number) => {
+  const removeFromCart = (id: string) => {
     setCart(prev => prev.filter(item => item.id !== id));
   };
 
-  const updateQuantity = (id: number, delta: number) => {
+  const updateQuantity = (id: string, delta: number) => {
     setCart(prev => prev.map(item => {
       if (item.id === id) {
         const newQty = Math.max(1, item.quantity + delta);
@@ -125,19 +89,48 @@ export default function MarketPage() {
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
+    if (!user) {
+      toast.error("Please login to checkout");
+      return;
+    }
+
     setIsCheckingOut(true);
-    setTimeout(() => {
-      setIsCheckingOut(false);
+    try {
+      // Process each item sequentially for now
+      for (const item of cart) {
+        const success = await purchaseItem(user.id, item.id, item.quantity);
+        if (!success) {
+          throw new Error(`Failed to purchase ${item.product.name}`);
+        }
+      }
+      
       setCart([]);
       setIsCartOpen(false);
       toast.success("Order placed successfully!");
-    }, 2000);
+      
+      // Refresh products to update stock
+      const items = await getMarketItems();
+      setProducts(items);
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast.error("Checkout failed. Please try again.");
+    } finally {
+      setIsCheckingOut(false);
+    }
   };
 
   const filteredProducts = products
     .filter(p => selectedCategory === "All" || p.category === selectedCategory)
     .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <RiLoader4Line className="w-8 h-8 text-[#866bff] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <motion.div 
@@ -202,7 +195,7 @@ export default function MarketPage() {
                                   key={item.id} 
                                   className="flex gap-4 bg-white/5 p-3 rounded-2xl border border-white/5"
                                 >
-                                   <img src={item.product.image} alt={item.product.name} className="w-20 h-20 object-cover rounded-xl" />
+                                   <img src={item.product.image_url} alt={item.product.name} className="w-20 h-20 object-cover rounded-xl" />
                                    <div className="flex-1 flex flex-col justify-between">
                                       <div>
                                          <h4 className="font-bold text-white text-sm line-clamp-1">{item.product.name}</h4>
@@ -274,46 +267,52 @@ export default function MarketPage() {
 
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <AnimatePresence mode="popLayout">
-               {filteredProducts.map((product) => (
-                  <motion.div
-                     layout
-                     initial={{ opacity: 0, scale: 0.9 }}
-                     animate={{ opacity: 1, scale: 1 }}
-                     exit={{ opacity: 0, scale: 0.9 }}
-                     key={product.id}
-                  >
-                     <Card 
-                       className="bg-[#1c1f2a]/40 backdrop-blur-xl border-white/5 text-white overflow-hidden rounded-3xl group hover:border-[#866bff]/50 transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer h-full flex flex-col"
-                       onClick={() => setSelectedProduct(product)}
-                     >
-                        <div className="aspect-[4/3] overflow-hidden relative bg-[#12141d]">
-                           <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                           <div className="absolute top-3 right-3">
-                              <Badge className="bg-black/60 backdrop-blur-md text-white border border-white/10">{product.category}</Badge>
-                           </div>
-                        </div>
-                        <CardContent className="p-5 flex-1 flex flex-col">
-                           <div className="flex justify-between items-start mb-2">
-                              <h3 className="text-lg font-bold line-clamp-1">{product.name}</h3>
-                           </div>
-                           <p className="text-gray-400 text-sm line-clamp-2 mb-4 flex-1">{product.description}</p>
-                           <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
-                              <span className="text-2xl font-bold text-[#99ee2d]">${product.price}</span>
-                              <Button 
-                                 size="sm" 
-                                 className="rounded-lg bg-white/5 hover:bg-[#866bff] hover:text-white text-white transition-all px-4"
-                                 onClick={(e) => {
-                                    e.stopPropagation();
-                                    addToCart(product);
-                                 }}
-                              >
-                                 <RiAddLine className="w-4 h-4 mr-1" /> Add
-                              </Button>
-                           </div>
-                        </CardContent>
-                     </Card>
-                  </motion.div>
-               ))}
+               {filteredProducts.length === 0 ? (
+                 <div className="col-span-full text-center text-gray-500 py-12">
+                   No items found
+                 </div>
+               ) : (
+                 filteredProducts.map((product) => (
+                    <motion.div
+                       layout
+                       initial={{ opacity: 0, scale: 0.9 }}
+                       animate={{ opacity: 1, scale: 1 }}
+                       exit={{ opacity: 0, scale: 0.9 }}
+                       key={product.id}
+                    >
+                       <Card 
+                         className="bg-[#1c1f2a]/40 backdrop-blur-xl border-white/5 text-white overflow-hidden rounded-3xl group hover:border-[#866bff]/50 transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer h-full flex flex-col"
+                         onClick={() => setSelectedProduct(product)}
+                       >
+                          <div className="aspect-[4/3] overflow-hidden relative bg-[#12141d]">
+                             <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                             <div className="absolute top-3 right-3">
+                                <Badge className="bg-black/60 backdrop-blur-md text-white border border-white/10">{product.category}</Badge>
+                             </div>
+                          </div>
+                          <CardContent className="p-5 flex-1 flex flex-col">
+                             <div className="flex justify-between items-start mb-2">
+                                <h3 className="text-lg font-bold line-clamp-1">{product.name}</h3>
+                             </div>
+                             <p className="text-gray-400 text-sm line-clamp-2 mb-4 flex-1">{product.description}</p>
+                             <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
+                                <span className="text-2xl font-bold text-[#99ee2d]">${product.price}</span>
+                                <Button 
+                                   size="sm" 
+                                   className="rounded-lg bg-white/5 hover:bg-[#866bff] hover:text-white text-white transition-all px-4"
+                                   onClick={(e) => {
+                                      e.stopPropagation();
+                                      addToCart(product);
+                                   }}
+                                >
+                                   <RiAddLine className="w-4 h-4 mr-1" /> Add
+                                </Button>
+                             </div>
+                          </CardContent>
+                       </Card>
+                    </motion.div>
+                 ))
+               )}
             </AnimatePresence>
          </div>
       </Tabs>
@@ -326,7 +325,7 @@ export default function MarketPage() {
             {selectedProduct && (
                <div className="flex flex-col md:flex-row h-full">
                   <div className="md:w-1/2 h-64 md:h-auto relative">
-                     <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                     <img src={selectedProduct.image_url} alt={selectedProduct.name} className="w-full h-full object-cover" />
                      <div className="absolute inset-0 bg-gradient-to-t from-[#1c1f2a] to-transparent md:bg-gradient-to-r md:from-transparent md:to-[#1c1f2a]" />
                   </div>
                   <div className="md:w-1/2 p-6 md:p-8 flex flex-col">

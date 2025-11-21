@@ -5,22 +5,83 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 export default function OnboardingPage() {
-  const [step, setStep] = useState<"splash" | "email" | "otp" | "username" | "success">("splash");
+  const [mode, setMode] = useState<"splash" | "login" | "signup">("splash");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Mock inputs
+  // Form inputs
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
+  const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
 
-  const goToNext = () => {
-    if (step === "splash") setStep("email");
-    else if (step === "email") setStep("otp");
-    else if (step === "otp") setStep("username");
-    else if (step === "username") setStep("success");
-    else if (step === "success") router.push("/");
+  const supabase = createClient();
+
+  const handleSignup = async () => {
+    if (!email || !password || !username) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Sign up the user
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+            display_name: displayName || username,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        toast.success("Account created successfully!");
+        router.push("/");
+      }
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      toast.error(error.message || "Failed to create account");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      toast.error("Please enter email and password");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        toast.success("Logged in successfully!");
+        router.push("/");
+      }
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast.error(error.message || "Failed to log in");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -30,7 +91,7 @@ export default function OnboardingPage() {
       <div className="absolute bottom-[-100px] right-[-100px] w-[300px] h-[300px] bg-[#99EE2D] rounded-full blur-[150px] opacity-20" />
 
       <div className="w-full max-w-md z-10">
-        {step === "splash" && (
+        {mode === "splash" && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -43,112 +104,132 @@ export default function OnboardingPage() {
               <h1 className="text-4xl font-bold mb-2">Epiko Hub</h1>
               <p className="text-gray-400">Your unified gaming ecosystem</p>
             </div>
+            <div className="w-full flex flex-col gap-3 mt-8">
+              <Button 
+                onClick={() => setMode("signup")} 
+                className="w-full bg-[#99ee2d] text-black hover:bg-[#88d428] font-bold h-12 text-lg"
+              >
+                Create Account
+              </Button>
+              <Button 
+                onClick={() => setMode("login")} 
+                variant="outline"
+                className="w-full border-white/20 text-white hover:bg-white/10 font-bold h-12 text-lg"
+              >
+                Log In
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {mode === "signup" && (
+          <motion.div
+            initial={{ x: 50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            className="bg-[#1c1f2a] p-8 rounded-3xl border border-white/5"
+          >
+            <div className="mb-8">
+               <h2 className="text-2xl font-bold mb-2">Create Account</h2>
+               <p className="text-gray-400">Join the Epiko ecosystem</p>
+            </div>
+            
+            <div className="space-y-4">
+              <Input 
+                type="email"
+                placeholder="Email" 
+                className="bg-[#12141d] border-white/10 h-12 text-lg"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
+              <Input 
+                placeholder="Username" 
+                className="bg-[#12141d] border-white/10 h-12 text-lg"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={loading}
+              />
+              <Input 
+                placeholder="Display Name (optional)" 
+                className="bg-[#12141d] border-white/10 h-12 text-lg"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                disabled={loading}
+              />
+              <Input 
+                type="password"
+                placeholder="Password" 
+                className="bg-[#12141d] border-white/10 h-12 text-lg"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+
             <Button 
-              onClick={goToNext} 
-              className="w-full mt-8 bg-[#99ee2d] text-black hover:bg-[#88d428] font-bold h-12 text-lg"
+              onClick={handleSignup} 
+              className="w-full mt-6 bg-[#866bff] hover:bg-[#7059d6] h-12 font-bold"
+              disabled={loading}
             >
-              Get Started
+              {loading ? "Creating Account..." : "Sign Up"}
             </Button>
+
+            <button
+              onClick={() => setMode("login")}
+              className="w-full mt-4 text-gray-400 hover:text-white transition-colors text-sm"
+              disabled={loading}
+            >
+              Already have an account? Log in
+            </button>
           </motion.div>
         )}
 
-        {step === "email" && (
+        {mode === "login" && (
           <motion.div
             initial={{ x: 50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             className="bg-[#1c1f2a] p-8 rounded-3xl border border-white/5"
           >
             <div className="mb-8">
-               <div className="w-full bg-gray-800 h-1 rounded-full mb-6">
-                  <div className="w-1/4 bg-[#866bff] h-1 rounded-full" />
-               </div>
-               <h2 className="text-2xl font-bold mb-2">Welcome</h2>
-               <p className="text-gray-400">Enter your email to continue</p>
+               <h2 className="text-2xl font-bold mb-2">Welcome Back</h2>
+               <p className="text-gray-400">Log in to your account</p>
             </div>
-            <Input 
-              placeholder="name@example.com" 
-              className="bg-[#12141d] border-white/10 h-12 text-lg mb-6"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <Button onClick={goToNext} className="w-full bg-[#866bff] hover:bg-[#7059d6] h-12 font-bold">
-              Continue
-            </Button>
-          </motion.div>
-        )}
-
-        {step === "otp" && (
-          <motion.div
-            initial={{ x: 50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="bg-[#1c1f2a] p-8 rounded-3xl border border-white/5"
-          >
-             <div className="mb-8">
-               <div className="w-full bg-gray-800 h-1 rounded-full mb-6">
-                  <div className="w-2/4 bg-[#866bff] h-1 rounded-full" />
-               </div>
-               <h2 className="text-2xl font-bold mb-2">Verification</h2>
-               <p className="text-gray-400">Enter the code sent to {email}</p>
+            
+            <div className="space-y-4">
+              <Input 
+                type="email"
+                placeholder="Email" 
+                className="bg-[#12141d] border-white/10 h-12 text-lg"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
+              <Input 
+                type="password"
+                placeholder="Password" 
+                className="bg-[#12141d] border-white/10 h-12 text-lg"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+              />
             </div>
-            <Input 
-              placeholder="000000" 
-              className="bg-[#12141d] border-white/10 h-12 text-lg mb-6 text-center tracking-[0.5em] font-mono"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-            />
-            <Button onClick={goToNext} className="w-full bg-[#866bff] hover:bg-[#7059d6] h-12 font-bold">
-              Verify
-            </Button>
-          </motion.div>
-        )}
 
-        {step === "username" && (
-          <motion.div
-            initial={{ x: 50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="bg-[#1c1f2a] p-8 rounded-3xl border border-white/5"
-          >
-            <div className="mb-8">
-               <div className="w-full bg-gray-800 h-1 rounded-full mb-6">
-                  <div className="w-3/4 bg-[#866bff] h-1 rounded-full" />
-               </div>
-               <h2 className="text-2xl font-bold mb-2">Create Profile</h2>
-               <p className="text-gray-400">Choose a unique username</p>
-            </div>
-            <Input 
-              placeholder="@username" 
-              className="bg-[#12141d] border-white/10 h-12 text-lg mb-6"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
-            <Button onClick={goToNext} className="w-full bg-[#866bff] hover:bg-[#7059d6] h-12 font-bold">
-              Complete Setup
+            <Button 
+              onClick={handleLogin} 
+              className="w-full mt-6 bg-[#866bff] hover:bg-[#7059d6] h-12 font-bold"
+              disabled={loading}
+            >
+              {loading ? "Logging in..." : "Log In"}
             </Button>
-          </motion.div>
-        )}
 
-        {step === "success" && (
-           <motion.div
-           initial={{ scale: 0.8, opacity: 0 }}
-           animate={{ scale: 1, opacity: 1 }}
-           className="text-center flex flex-col items-center gap-6 bg-[#1c1f2a] p-8 rounded-3xl border border-white/5"
-         >
-           <div className="w-20 h-20 bg-[#99ee2d]/20 rounded-full flex items-center justify-center mb-4">
-              <div className="w-10 h-10 bg-[#99ee2d] rounded-full flex items-center justify-center text-black font-bold text-xl">
-                ✓
-              </div>
-           </div>
-           <div>
-             <h2 className="text-2xl font-bold mb-2">You're In!</h2>
-             <p className="text-gray-400">Welcome to Epiko Hub, {username}</p>
-           </div>
-           <Button 
-             onClick={goToNext} 
-             className="w-full mt-4 bg-[#99ee2d] text-black hover:bg-[#88d428] font-bold h-12"
-           >
-             Go to Dashboard
-           </Button>
-         </motion.div>
+            <button
+              onClick={() => setMode("signup")}
+              className="w-full mt-4 text-gray-400 hover:text-white transition-colors text-sm"
+              disabled={loading}
+            >
+              Don't have an account? Sign up
+            </button>
+          </motion.div>
         )}
       </div>
     </div>

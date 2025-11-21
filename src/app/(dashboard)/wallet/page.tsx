@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,8 +12,12 @@ import {
   RiFileCopyLine 
 } from "@remixicon/react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { getWalletBalance, getTransactions, Transaction } from "@/lib/api/wallet";
+import { toast } from "sonner";
 
-const data = [
+// Mock chart data for now as we don't have historical balance data yet
+const chartData = [
   { name: 'Mon', value: 4000 },
   { name: 'Tue', value: 3000 },
   { name: 'Wed', value: 2000 },
@@ -24,6 +28,39 @@ const data = [
 ];
 
 export default function WalletPage() {
+  const { user } = useAuth();
+  const [balance, setBalance] = useState<number>(0);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadWalletData() {
+      if (user) {
+        try {
+          const [userBalance, userTransactions] = await Promise.all([
+            getWalletBalance(user.id),
+            getTransactions(user.id)
+          ]);
+          setBalance(userBalance);
+          setTransactions(userTransactions);
+        } catch (error) {
+          console.error("Error loading wallet data:", error);
+          toast.error("Failed to load wallet data");
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadWalletData();
+  }, [user]);
+
+  const handleCopyAddress = () => {
+    // Mock address for now
+    navigator.clipboard.writeText("0x71C...9A23");
+    toast.success("Address copied to clipboard");
+  };
+
   return (
     <motion.div 
       className="p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto"
@@ -45,14 +82,16 @@ export default function WalletPage() {
              <CardHeader>
                 <CardTitle className="text-sm font-medium text-gray-400">Total Balance</CardTitle>
                 <div className="flex items-baseline gap-2">
-                   <span className="text-4xl font-bold">2,450.00</span>
+                   <span className="text-4xl font-bold">
+                     {loading ? "..." : balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                   </span>
                    <span className="text-xl text-gray-400">USDT</span>
                 </div>
              </CardHeader>
              <CardContent>
                 <div className="h-[200px] w-full mt-4">
                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={data}>
+                      <LineChart data={chartData}>
                          <defs>
                             <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                                <stop offset="5%" stopColor="#99ee2d" stopOpacity={0.8}/>
@@ -102,7 +141,12 @@ export default function WalletPage() {
                 <CardContent>
                    <div className="flex items-center gap-2 bg-black/20 p-3 rounded-lg border border-white/5">
                       <code className="text-xs text-gray-300 truncate">0x71C...9A23</code>
-                      <Button size="icon" variant="ghost" className="h-6 w-6 ml-auto text-gray-400 hover:text-white">
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-6 w-6 ml-auto text-gray-400 hover:text-white"
+                        onClick={handleCopyAddress}
+                      >
                          <RiFileCopyLine className="w-3 h-3" />
                       </Button>
                    </div>
@@ -117,25 +161,33 @@ export default function WalletPage() {
           </CardHeader>
           <CardContent>
              <div className="space-y-4">
-                {[1,2,3].map(i => (
-                   <div key={i} className="flex justify-between items-center border-b border-white/5 pb-4 last:border-0">
-                      <div className="flex items-center gap-4">
-                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${i%2===0 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                            {i%2===0 ? <RiArrowLeftDownLine className="w-5 h-5 text-green-500" /> : <RiArrowRightUpLine className="w-5 h-5 text-red-500" />}
-                         </div>
-                         <div>
-                            <p className="font-medium">{i%2===0 ? 'Received USDT' : 'Sent EPIKO'}</p>
-                            <p className="text-xs text-gray-500">Today, 12:30 PM</p>
-                         </div>
-                      </div>
-                      <div className="text-right">
-                         <p className={`font-bold ${i%2===0 ? 'text-green-400' : 'text-white'}`}>
-                            {i%2===0 ? '+' : '-'} {i*150}.00
-                         </p>
-                         <p className="text-xs text-gray-500">Completed</p>
-                      </div>
-                   </div>
-                ))}
+                {loading ? (
+                  <div className="text-center text-gray-500 py-8">Loading transactions...</div>
+                ) : transactions.length === 0 ? (
+                  <div className="text-center text-gray-500 py-8">No transactions found</div>
+                ) : (
+                  transactions.map((tx) => (
+                     <div key={tx.id} className="flex justify-between items-center border-b border-white/5 pb-4 last:border-0">
+                        <div className="flex items-center gap-4">
+                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.type === 'credit' ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                              {tx.type === 'credit' ? <RiArrowLeftDownLine className="w-5 h-5 text-green-500" /> : <RiArrowRightUpLine className="w-5 h-5 text-red-500" />}
+                           </div>
+                           <div>
+                              <p className="font-medium capitalize">{tx.description || (tx.type === 'credit' ? 'Received Funds' : 'Sent Funds')}</p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(tx.created_at).toLocaleDateString()} {new Date(tx.created_at).toLocaleTimeString()}
+                              </p>
+                           </div>
+                        </div>
+                        <div className="text-right">
+                           <p className={`font-bold ${tx.type === 'credit' ? 'text-green-400' : 'text-white'}`}>
+                              {tx.type === 'credit' ? '+' : '-'} {tx.amount.toFixed(2)}
+                           </p>
+                           <p className="text-xs text-gray-500 capitalize">{tx.status}</p>
+                        </div>
+                     </div>
+                  ))
+                )}
              </div>
           </CardContent>
        </Card>

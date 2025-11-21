@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -13,11 +13,115 @@ import {
   RiShieldCheckLine, 
   RiUserSettingsLine,
   RiImageEditLine,
-  RiUploadCloud2Line
+  RiUploadCloud2Line,
+  RiLoader4Line
 } from "@remixicon/react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { getUserProfile, updateUserProfile, uploadAvatar, uploadBanner, UserProfile } from "@/lib/api/users";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    display_name: "",
+    bio: ""
+  });
+  
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    async function loadProfile() {
+      if (user) {
+        try {
+          const userProfile = await getUserProfile(user.id);
+          if (userProfile) {
+            setProfile(userProfile);
+            setFormData({
+              display_name: userProfile.display_name || "",
+              bio: userProfile.bio || ""
+            });
+          }
+        } catch (error) {
+          console.error("Error loading profile:", error);
+          toast.error("Failed to load profile");
+        }
+      }
+      setLoading(false);
+    }
+
+    loadProfile();
+  }, [user]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+    
+    setSaving(true);
+    try {
+      const updatedProfile = await updateUserProfile(user.id, {
+        display_name: formData.display_name,
+        bio: formData.bio
+      });
+      
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+        toast.success("Profile updated successfully");
+      } else {
+        toast.error("Failed to update profile");
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error("An error occurred");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
+    if (!user || !e.target.files || e.target.files.length === 0) return;
+    
+    const file = e.target.files[0];
+    const uploadPromise = type === 'avatar' ? uploadAvatar(user.id, file) : uploadBanner(user.id, file);
+    
+    toast.promise(uploadPromise, {
+      loading: `Uploading ${type}...`,
+      success: (url) => {
+        if (url) {
+          // Update local state immediately for better UX
+          setProfile(prev => prev ? { 
+            ...prev, 
+            [type === 'avatar' ? 'avatar_url' : 'banner_url']: url 
+          } : null);
+          
+          // Update profile in DB
+          updateUserProfile(user.id, {
+            [type === 'avatar' ? 'avatar_url' : 'banner_url']: url
+          });
+          return `${type.charAt(0).toUpperCase() + type.slice(1)} updated successfully`;
+        }
+        throw new Error("Upload failed");
+      },
+      error: "Failed to upload image"
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <RiLoader4Line className="w-8 h-8 text-[#866bff] animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <motion.div 
       className="p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto"
@@ -50,21 +154,44 @@ export default function SettingsPage() {
                   {/* Banner & Avatar */}
                   <div className="relative">
                      <div className="h-40 w-full bg-gradient-to-r from-[#4c1d95] to-[#866bff] rounded-2xl overflow-hidden relative group">
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        {profile?.banner_url && (
+                          <img src={profile.banner_url} alt="Banner" className="w-full h-full object-cover" />
+                        )}
+                        <div 
+                          className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          onClick={() => bannerInputRef.current?.click()}
+                        >
                            <div className="flex items-center gap-2 text-white font-bold bg-black/50 px-4 py-2 rounded-full backdrop-blur-md">
                               <RiImageEditLine className="w-5 h-5" />
                               <span>Change Banner</span>
                            </div>
                         </div>
+                        <input 
+                          type="file" 
+                          ref={bannerInputRef} 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, 'banner')}
+                        />
                      </div>
                      <div className="absolute -bottom-12 left-8">
                         <div className="relative group">
                            <div className="w-32 h-32 rounded-full border-4 border-[#1c1f2a] overflow-hidden bg-[#12141d]">
-                              <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=800&q=80" alt="Avatar" className="w-full h-full object-cover" />
+                              <img src={profile?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=800&q=80"} alt="Avatar" className="w-full h-full object-cover" />
                            </div>
-                           <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-4 border-transparent">
+                           <div 
+                             className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-4 border-transparent"
+                             onClick={() => avatarInputRef.current?.click()}
+                           >
                               <RiUploadCloud2Line className="w-8 h-8 text-white" />
                            </div>
+                           <input 
+                              type="file" 
+                              ref={avatarInputRef} 
+                              className="hidden" 
+                              accept="image/*"
+                              onChange={(e) => handleFileChange(e, 'avatar')}
+                           />
                         </div>
                      </div>
                   </div>
@@ -72,24 +199,47 @@ export default function SettingsPage() {
                   {/* Form Fields */}
                   <div className="pt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
                      <div className="space-y-2">
-                        <Label htmlFor="display-name">Display Name</Label>
-                        <Input id="display-name" defaultValue="Itachi OGX" className="bg-black/20 border-white/10 text-white" />
+                        <Label htmlFor="display_name">Display Name</Label>
+                        <Input 
+                          id="display_name" 
+                          value={formData.display_name} 
+                          onChange={handleInputChange}
+                          className="bg-black/20 border-white/10 text-white" 
+                        />
                      </div>
                      <div className="space-y-2">
                         <Label htmlFor="username">Username</Label>
-                        <Input id="username" defaultValue="@itachi_ogx" disabled className="bg-black/20 border-white/10 text-gray-400 cursor-not-allowed" />
+                        <Input 
+                          id="username" 
+                          value={`@${profile?.username || 'user'}`} 
+                          disabled 
+                          className="bg-black/20 border-white/10 text-gray-400 cursor-not-allowed" 
+                        />
                      </div>
                      <div className="space-y-2 md:col-span-2">
                         <Label htmlFor="bio">Bio</Label>
                         <Textarea 
                            id="bio" 
                            className="bg-black/20 border-white/10 text-white min-h-[100px]" 
-                           defaultValue="Professional Epiko Regal player and NFT collector. Building the future of gaming on Web3. Always looking for the next big tournament to conquer."
+                           value={formData.bio}
+                           onChange={handleInputChange}
+                           placeholder="Tell us about yourself..."
                         />
                      </div>
                   </div>
                   <div className="flex justify-end">
-                     <Button className="bg-[#866bff] hover:bg-[#7059d6] text-white font-bold">Save Changes</Button>
+                     <Button 
+                       className="bg-[#866bff] hover:bg-[#7059d6] text-white font-bold"
+                       onClick={handleSave}
+                       disabled={saving}
+                     >
+                       {saving ? (
+                         <>
+                           <RiLoader4Line className="w-4 h-4 mr-2 animate-spin" />
+                           Saving...
+                         </>
+                       ) : "Save Changes"}
+                     </Button>
                   </div>
                </div>
             </CardContent>

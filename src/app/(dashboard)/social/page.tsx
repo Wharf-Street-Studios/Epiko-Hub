@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,106 +13,120 @@ import {
   Image as ImageIcon, 
   Smile, 
   TrendingUp,
-  Users
+  Users,
+  Loader2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import { useAuth } from "@/contexts/AuthContext";
+import { getPosts, createPost, likePost, unlikePost, getUserLikedPostIds, subscribeToNewPosts, Post } from "@/lib/api/social";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
-interface Post {
-  id: number;
-  user: {
-    name: string;
-    handle: string;
-    avatar: string;
-  };
-  content: string;
-  image?: string;
-  likes: number;
-  comments: number;
-  time: string;
+interface UIPost extends Post {
   isLiked: boolean;
 }
 
-const initialPosts: Post[] = [
-  {
-    id: 1,
-    user: {
-      name: "Itachi OGX",
-      handle: "@itachi_ogx",
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=800&q=80"
-    },
-    content: "Just won my first tournament match in Epiko Regal! 🏆 The new strategy with the Dragon unit is absolutely broken. Who else is using it? #EpikoRegal #Gaming",
-    image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80",
-    likes: 245,
-    comments: 42,
-    time: "2h ago",
-    isLiked: false
-  },
-  {
-    id: 2,
-    user: {
-      name: "Sarah Connor",
-      handle: "@sarah_c",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80"
-    },
-    content: "Can't believe I found this rare artifact in Epiko World today! 💎 The exploration update is amazing.",
-    likes: 892,
-    comments: 156,
-    time: "5h ago",
-    isLiked: true
-  },
-  {
-    id: 3,
-    user: {
-      name: "CryptoKing",
-      handle: "@cryptoking",
-      avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=800&q=80"
-    },
-    content: "Market analysis: Epiko tokens are showing strong support at the current level. Bullish on the next season! 📈",
-    likes: 120,
-    comments: 15,
-    time: "12h ago",
-    isLiked: false
-  }
-];
-
 export default function SocialPage() {
-  const [posts, setPosts] = useState<Post[]>(initialPosts);
+  const { user, profile } = useAuth();
+  const [posts, setPosts] = useState<UIPost[]>([]);
   const [newPostContent, setNewPostContent] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [posting, setPosting] = useState(false);
 
-  const handleLike = (id: number) => {
-    setPosts(posts.map(post => {
-      if (post.id === id) {
-        return {
+  useEffect(() => {
+    async function loadPosts() {
+      try {
+        const [fetchedPosts, likedPostIds] = await Promise.all([
+          getPosts(),
+          user ? getUserLikedPostIds(user.id) : Promise.resolve([])
+        ]);
+
+        const uiPosts = fetchedPosts.map(post => ({
           ...post,
-          likes: post.isLiked ? post.likes - 1 : post.likes + 1,
-          isLiked: !post.isLiked
+          isLiked: likedPostIds.includes(post.id)
+        }));
+
+        setPosts(uiPosts);
+      } catch (error) {
+        console.error("Error loading posts:", error);
+        toast.error("Failed to load feed");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPosts();
+
+    const subscription = subscribeToNewPosts((newPost) => {
+      setPosts(prev => [{ ...newPost, isLiked: false }, ...prev]);
+    });
+
+    return () => {
+      subscription.then(sub => sub.unsubscribe());
+    };
+  }, [user]);
+
+  const handleLike = async (post: UIPost) => {
+    if (!user) {
+      toast.error("Please login to like posts");
+      return;
+    }
+
+    // Optimistic update
+    const originalPosts = [...posts];
+    setPosts(posts.map(p => {
+      if (p.id === post.id) {
+        return {
+          ...p,
+          likes_count: p.isLiked ? p.likes_count - 1 : p.likes_count + 1,
+          isLiked: !p.isLiked
         };
       }
-      return post;
+      return p;
     }));
+
+    try {
+      if (post.isLiked) {
+        await unlikePost(user.id, post.id);
+      } else {
+        await likePost(user.id, post.id);
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      setPosts(originalPosts); // Revert on error
+      toast.error("Failed to update like");
+    }
   };
 
-  const handlePost = () => {
-    if (!newPostContent.trim()) return;
+  const handlePost = async () => {
+    if (!newPostContent.trim() || !user) return;
     
-    const newPost: Post = {
-      id: Date.now(),
-      user: {
-        name: "Guest User",
-        handle: "@guest",
-        avatar: "https://github.com/shadcn.png"
-      },
-      content: newPostContent,
-      likes: 0,
-      comments: 0,
-      time: "Just now",
-      isLiked: false
-    };
-
-    setPosts([newPost, ...posts]);
-    setNewPostContent("");
+    setPosting(true);
+    try {
+      const newPost = await createPost(user.id, newPostContent);
+      if (newPost) {
+        // Post will be added via subscription, but we can also add it manually if needed
+        // For now, let's rely on subscription or add it manually to be instant
+        // setPosts(prev => [{ ...newPost, isLiked: false }, ...prev]); 
+        setNewPostContent("");
+        toast.success("Post created!");
+      }
+    } catch (error) {
+      console.error("Error creating post:", error);
+      toast.error("Failed to create post");
+    } finally {
+      setPosting(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#866bff] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <motion.div 
@@ -132,12 +146,12 @@ export default function SocialPage() {
                 <CardContent className="pt-0 -mt-12 text-center relative z-10">
                    <div className="p-1.5 bg-[#1c1f2a] rounded-full w-fit mx-auto">
                       <Avatar className="w-24 h-24 border-4 border-[#1c1f2a]">
-                         <AvatarImage src="https://github.com/shadcn.png" />
-                         <AvatarFallback>GU</AvatarFallback>
+                         <AvatarImage src={profile?.avatar_url || "https://github.com/shadcn.png"} />
+                         <AvatarFallback>{profile?.username?.[0] || "U"}</AvatarFallback>
                       </Avatar>
                    </div>
-                   <h3 className="mt-3 font-bold text-xl">Guest User</h3>
-                   <p className="text-gray-400 text-sm font-medium">@guest • Lvl 5</p>
+                   <h3 className="mt-3 font-bold text-xl">{profile?.display_name || profile?.username || "Guest User"}</h3>
+                   <p className="text-gray-400 text-sm font-medium">@{profile?.username || "guest"} • Lvl 5</p>
                    
                    <div className="flex justify-around mt-8 border-t border-white/5 pt-6 pb-2">
                       <div>
@@ -162,8 +176,8 @@ export default function SocialPage() {
                 <CardContent className="p-6">
                    <div className="flex gap-4">
                       <Avatar className="w-12 h-12 border border-white/10">
-                         <AvatarImage src="https://github.com/shadcn.png" />
-                         <AvatarFallback>GU</AvatarFallback>
+                         <AvatarImage src={profile?.avatar_url || "https://github.com/shadcn.png"} />
+                         <AvatarFallback>{profile?.username?.[0] || "U"}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 space-y-4">
                          <Textarea 
@@ -179,10 +193,10 @@ export default function SocialPage() {
                             </div>
                             <Button 
                               onClick={handlePost}
-                              disabled={!newPostContent.trim()}
+                              disabled={!newPostContent.trim() || posting}
                               className="bg-[#866bff] hover:bg-[#7059d6] text-white rounded-full px-8 font-bold shadow-lg shadow-[#866bff]/20"
                             >
-                               Post
+                              {posting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post"}
                             </Button>
                          </div>
                       </div>
@@ -202,38 +216,38 @@ export default function SocialPage() {
                  <Card className="bg-[#1c1f2a]/40 backdrop-blur-md border-white/5 text-white hover:border-[#866bff]/30 transition-all rounded-3xl shadow-lg overflow-hidden">
                     <CardHeader className="flex flex-row items-start gap-4 pb-2">
                        <Avatar className="border border-white/10">
-                          <AvatarImage src={post.user.avatar} />
-                          <AvatarFallback>{post.user.name[0]}</AvatarFallback>
+                          <AvatarImage src={post.user?.avatar_url || ""} />
+                          <AvatarFallback>{post.user?.username?.[0] || "U"}</AvatarFallback>
                        </Avatar>
                        <div className="flex-1">
                           <div className="flex justify-between items-start">
                              <div className="flex flex-col">
-                                <span className="font-bold text-white hover:text-[#866bff] transition-colors cursor-pointer text-base">{post.user.name}</span>
-                                <span className="text-gray-400 text-xs">{post.user.handle}</span>
+                                <span className="font-bold text-white hover:text-[#866bff] transition-colors cursor-pointer text-base">{post.user?.display_name || post.user?.username || "Unknown"}</span>
+                                <span className="text-gray-400 text-xs">@{post.user?.username || "unknown"}</span>
                              </div>
-                             <span className="text-gray-500 text-xs bg-white/5 px-2 py-1 rounded-full">{post.time}</span>
+                             <span className="text-gray-500 text-xs bg-white/5 px-2 py-1 rounded-full">{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
                           </div>
                        </div>
                        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white rounded-full"><MoreHorizontal className="w-4 h-4" /></Button>
                     </CardHeader>
                     <CardContent className="pb-2 space-y-4 pl-[72px] pr-6">
                        <p className="whitespace-pre-wrap text-gray-200 leading-relaxed text-[15px]">{post.content}</p>
-                       {post.image && (
-                          <img src={post.image} alt="Post content" className="rounded-2xl w-full max-h-[400px] object-cover border border-white/5 shadow-lg" />
+                       {post.image_url && (
+                          <img src={post.image_url} alt="Post content" className="rounded-2xl w-full max-h-[400px] object-cover border border-white/5 shadow-lg" />
                        )}
                     </CardContent>
                     <CardFooter className="pt-4 pb-4 pl-[72px] pr-6 flex justify-between text-gray-400 border-t border-white/5 mt-2">
                        <Button 
                           variant="ghost" 
                           className={`gap-2 hover:text-[#E91E63] hover:bg-[#E91E63]/10 rounded-full transition-colors ${post.isLiked ? 'text-[#E91E63]' : ''}`}
-                          onClick={() => handleLike(post.id)}
+                          onClick={() => handleLike(post)}
                        >
                           <Heart className={`w-4 h-4 ${post.isLiked ? 'fill-current' : ''}`} /> 
-                          {post.likes}
+                          {post.likes_count}
                        </Button>
                        <Button variant="ghost" className="gap-2 hover:text-[#866bff] hover:bg-[#866bff]/10 rounded-full transition-colors">
                           <MessageSquare className="w-4 h-4" /> 
-                          {post.comments}
+                          {post.comments_count}
                        </Button>
                        <Button variant="ghost" className="gap-2 hover:text-[#99ee2d] hover:bg-[#99ee2d]/10 rounded-full transition-colors">
                           <Share2 className="w-4 h-4" /> 

@@ -1,7 +1,7 @@
 "use client"
 
 import { Layout } from "@/components/Layout"
-import { EpikoAssistant } from "@/components/ai/EpikoAssistant"
+// import { EpikoAssistant } from "@/components/ai/EpikoAssistant"
 import { usePathname } from "next/navigation"
 
 export default function DashboardLayout({
@@ -15,7 +15,7 @@ export default function DashboardLayout({
   return (
     <Layout>
       {children}
-      {showAssistant && <EpikoAssistant />}
+      {/* Epiko Assistant Removed */}
     </Layout>
   )
 }

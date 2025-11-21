@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,9 +30,14 @@ import {
   Cell
 } from "recharts";
 import { toast } from "sonner";
-import { motion, Variants } from "framer-motion"; // Corrected import for motion
+import { motion, Variants } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { getUserProfile, UserProfile } from "@/lib/api/users";
+import { getUserGames } from "@/lib/api/games";
+import { getUserNFTs } from "@/lib/api/nfts";
+import { useRouter } from "next/navigation";
 
-// Mock Data
+// Mock Data for Charts (to be replaced with real analytics later)
 const radarData = [
   { subject: 'Collectibles', A: 120, fullMark: 150 },
   { subject: 'Social', A: 98, fullMark: 150 },
@@ -62,18 +67,56 @@ const pieData = [
 const COLORS = ['#866bff', '#99ee2d', '#00C49F', '#FFBB28'];
 
 export default function Dashboard() {
-  const user = {
-    name: "Itachi OGX",
-    level: 15,
-    id: "EC46843",
-    wallet: "2.5K USDT",
-    karma: "46K",
-    avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=800&q=80"
-  };
+  const { user } = useAuth();
+  const router = useRouter();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [stats, setStats] = useState({
+    gamesPlayed: 0,
+    gamesWon: 0,
+    nfts: 0,
+    appsInstalled: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDashboardData() {
+      if (user) {
+        try {
+          const [userProfile, userGames, userNfts] = await Promise.all([
+            getUserProfile(user.id),
+            getUserGames(user.id),
+            getUserNFTs(user.id)
+          ]);
+
+          setProfile(userProfile);
+          
+          // Calculate stats
+          const gamesPlayed = userGames.reduce((acc, game) => acc + game.matches_played, 0);
+          const gamesWon = userGames.reduce((acc, game) => acc + game.wins, 0);
+          const appsInstalled = userGames.filter(g => g.installed).length;
+
+          setStats({
+            gamesPlayed,
+            gamesWon,
+            nfts: userNfts.length,
+            appsInstalled
+          });
+        } catch (error) {
+          console.error("Error loading dashboard data:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDashboardData();
+  }, [user]);
 
   const handleCopyId = () => {
-    navigator.clipboard.writeText(user.id);
-    toast.success("ID copied to clipboard");
+    if (user?.id) {
+      navigator.clipboard.writeText(user.id);
+      toast.success("ID copied to clipboard");
+    }
   };
 
   const containerVariants: Variants = {
@@ -90,6 +133,10 @@ export default function Dashboard() {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
   };
+
+  const displayName = profile?.display_name || profile?.username || "User";
+  const avatarUrl = profile?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=800&q=80";
+  const initials = displayName.substring(0, 2).toUpperCase();
 
   return (
     <motion.div 
@@ -117,13 +164,13 @@ export default function Dashboard() {
               <div className="flex items-center gap-6 mb-6">
                  <div className="p-1.5 bg-white/10 backdrop-blur-md rounded-full shadow-xl ring-1 ring-white/20">
                     <Avatar className="h-28 w-28 border-4 border-transparent">
-                       <AvatarImage src={user.avatar} />
-                       <AvatarFallback>IO</AvatarFallback>
+                       <AvatarImage src={avatarUrl} />
+                       <AvatarFallback>{initials}</AvatarFallback>
                     </Avatar>
                  </div>
                  <div>
                     <h2 className="text-4xl font-bold text-white flex items-center gap-2 tracking-tight">
-                       {user.name}
+                       {loading ? "Loading..." : displayName}
                        <Badge className="bg-[#99ee2d] text-black hover:bg-[#99ee2d] h-6 w-6 rounded-full p-0 flex items-center justify-center shadow-[0_0_15px_rgba(153,238,45,0.6)]">✓</Badge>
                     </h2>
                     <motion.div 
@@ -131,10 +178,10 @@ export default function Dashboard() {
                       className="flex items-center gap-2 bg-black/20 backdrop-blur-sm px-4 py-1.5 rounded-full w-fit mt-3 cursor-pointer hover:bg-black/30 transition-colors border border-white/10"
                       onClick={handleCopyId}
                     >
-                       <span className="text-xs text-white/90 font-mono tracking-wider">{user.id}</span>
+                       <span className="text-xs text-white/90 font-mono tracking-wider">{user?.id || "..."}</span>
                        <RiFileCopyLine className="w-3 h-3 text-white/70" />
                     </motion.div>
-                    <p className="text-xs text-purple-200 mt-3 font-medium">Member since 2021 • Pro Player</p>
+                    <p className="text-xs text-purple-200 mt-3 font-medium">Member since {new Date(profile?.created_at || Date.now()).getFullYear()} • Pro Player</p>
                  </div>
               </div>
               
@@ -142,6 +189,7 @@ export default function Dashboard() {
                 <motion.button 
                   whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(153,238,45,0.4)" }}
                   whileTap={{ scale: 0.98 }}
+                  onClick={() => router.push("/profile")}
                 >
                    VIEW PROFILE <RiArrowRightUpLine className="w-5 h-5" />
                 </motion.button>
@@ -153,16 +201,18 @@ export default function Dashboard() {
          <div className="lg:w-3/5 bg-[#0f1116]/60 backdrop-blur-xl p-8 lg:pl-12 flex flex-col justify-center relative z-0">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-10 mb-10">
                {[
-                 { label: "Apps Installed", value: "2" },
-                 { label: "Games Played", value: "1,232" },
-                 { label: "Games Won", value: "213", highlight: true },
-                 { label: "Events Won", value: "3" },
-                 { label: "AR Collection", value: "4" },
-                 { label: "NFT Collection", value: "6" },
+                 { label: "Apps Installed", value: stats.appsInstalled.toString() },
+                 { label: "Games Played", value: stats.gamesPlayed.toString() },
+                 { label: "Games Won", value: stats.gamesWon.toString(), highlight: true },
+                 { label: "Events Won", value: "0" }, // Placeholder
+                 { label: "AR Collection", value: "0" }, // Placeholder
+                 { label: "NFT Collection", value: stats.nfts.toString() },
                ].map((stat, idx) => (
                  <div key={idx}>
                     <p className="text-gray-400 text-[11px] uppercase tracking-widest font-semibold mb-2">{stat.label}</p>
-                    <p className={`text-3xl font-bold ${stat.highlight ? "text-[#99ee2d]" : "text-white"}`}>{stat.value}</p>
+                    <p className={`text-3xl font-bold ${stat.highlight ? "text-[#99ee2d]" : "text-white"}`}>
+                      {loading ? "..." : stat.value}
+                    </p>
                  </div>
                ))}
             </div>
@@ -174,11 +224,15 @@ export default function Dashboard() {
                    </div>
                    <div>
                       <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-0.5">Total Earned</p>
-                      <span className="text-2xl md:text-3xl font-black text-[#99ee2d] tracking-tight">46,123 <span className="text-sm font-bold text-white/60 ml-1">KARMA</span></span>
+                      <span className="text-2xl md:text-3xl font-black text-[#99ee2d] tracking-tight">
+                        {loading ? "..." : (profile?.karma_points || 0).toLocaleString()} 
+                        <span className="text-sm font-bold text-white/60 ml-1">KARMA</span>
+                      </span>
                    </div>
                 </div>
                 <Button 
                   className="h-24 w-full sm:w-auto flex-1 bg-black/40 text-white border border-white/10 hover:bg-[#99ee2d] hover:text-black hover:border-[#99ee2d] rounded-2xl font-black text-lg tracking-widest shadow-lg transition-all duration-300"
+                  onClick={() => router.push("/market")}
                 >
                    REDEEM NOW
                 </Button>

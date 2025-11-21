@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,13 +12,73 @@ import {
   RiShareLine, 
   RiMapPinLine, 
   RiCalendarLine,
-  RiDiscordLine
+  RiDiscordLine,
+  RiLoader4Line
 } from "@remixicon/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { getUserProfile, UserProfile } from "@/lib/api/users";
+import { getUserGames } from "@/lib/api/games";
+import { getUserNFTs } from "@/lib/api/nfts";
+import { toast } from "sonner";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [stats, setStats] = useState({
+    matches: 0,
+    karma: 0,
+    collectibles: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadProfileData() {
+      if (user) {
+        try {
+          const [userProfile, userGames, userNfts] = await Promise.all([
+            getUserProfile(user.id),
+            getUserGames(user.id),
+            getUserNFTs(user.id)
+          ]);
+          
+          setProfile(userProfile);
+          
+          const matches = userGames.reduce((acc, game) => acc + game.matches_played, 0);
+          
+          setStats({
+            matches,
+            karma: userProfile?.karma_points || 0,
+            collectibles: userNfts.length
+          });
+        } catch (error) {
+          console.error("Error loading profile data:", error);
+          toast.error("Failed to load profile data");
+        }
+      }
+      setLoading(false);
+    }
+
+    loadProfileData();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <RiLoader4Line className="w-8 h-8 text-[#866bff] animate-spin" />
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-400">
+        Profile not found
+      </div>
+    );
+  }
 
   return (
     <motion.div 
@@ -44,19 +104,19 @@ export default function ProfilePage() {
                   className="p-1.5 bg-[#12141d] rounded-full"
                >
                   <Avatar className="w-40 h-40 border-4 border-[#12141d]">
-                     <AvatarImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=800&q=80" />
-                     <AvatarFallback>IO</AvatarFallback>
+                     <AvatarImage src={profile.avatar_url || ""} />
+                     <AvatarFallback>{profile.display_name?.substring(0, 2).toUpperCase() || "EP"}</AvatarFallback>
                   </Avatar>
                </motion.div>
                <div className="mb-2 space-y-2">
                   <div className="flex items-center justify-center md:justify-start gap-3">
-                     <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Itachi OGX</h1>
+                     <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">{profile.display_name || "Epiko User"}</h1>
                      <Badge className="bg-[#99ee2d] text-black hover:bg-[#99ee2d] px-2 py-0.5 text-xs shadow-[0_0_10px_rgba(153,238,45,0.4)]">Verified</Badge>
                   </div>
-                  <p className="text-gray-400 font-medium text-lg">@itachi_ogx</p>
+                  <p className="text-gray-400 font-medium text-lg">@{profile.username || "user"}</p>
                   <div className="flex items-center justify-center md:justify-start gap-4 text-sm text-gray-500">
                      <span className="flex items-center gap-1"><RiMapPinLine className="w-4 h-4" /> Tokyo, Japan</span>
-                     <span className="flex items-center gap-1"><RiCalendarLine className="w-4 h-4" /> Joined Oct 2021</span>
+                     <span className="flex items-center gap-1"><RiCalendarLine className="w-4 h-4" /> Joined {new Date(profile.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</span>
                   </div>
                </div>
             </div>
@@ -91,14 +151,14 @@ export default function ProfilePage() {
                   </CardHeader>
                   <CardContent>
                      <p className="text-gray-300 leading-relaxed text-lg">
-                        Professional Epiko Regal player and NFT collector. Building the future of gaming on Web3. Always looking for the next big tournament to conquer.
+                        {profile.bio || "No bio yet."}
                      </p>
                      <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
                         {[
-                          { label: "Level", value: "15", color: "#99ee2d" },
-                          { label: "Matches", value: "1.2k", color: "white" },
-                          { label: "Karma", value: "46k", color: "white" },
-                          { label: "Collectibles", value: "12", color: "white" },
+                          { label: "Level", value: "15", color: "#99ee2d" }, // Mock level for now
+                          { label: "Matches", value: stats.matches.toLocaleString(), color: "white" },
+                          { label: "Karma", value: stats.karma.toLocaleString(), color: "white" },
+                          { label: "Collectibles", value: stats.collectibles.toString(), color: "white" },
                         ].map((stat, i) => (
                           <motion.div 
                              key={i} 

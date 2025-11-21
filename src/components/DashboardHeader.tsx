@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
@@ -22,17 +22,43 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { getUserProfile } from "@/lib/api/users";
+import type { UserProfile } from "@/lib/api/users";
 
 export function DashboardHeader() {
   const router = useRouter();
-  const user = {
-    name: "Itachi OGX",
-    level: 15,
-    id: "EC46843",
-    wallet: "2.5K USDT",
-    karma: "46K",
-    avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=800&q=80"
+  const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadProfile() {
+      if (user) {
+        const data = await getUserProfile(user.id);
+        setProfile(data);
+      }
+      setLoading(false);
+    }
+    loadProfile();
+  }, [user]);
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push("/onboarding");
   };
+
+  // Format numbers for display
+  const formatNumber = (num: number) => {
+    if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K`;
+    }
+    return num.toString();
+  };
+
+  const displayName = profile?.display_name || profile?.username || "User";
+  const avatarUrl = profile?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=800&q=80";
+  const initials = displayName.substring(0, 2).toUpperCase();
 
   return (
     <motion.header 
@@ -58,7 +84,9 @@ export function DashboardHeader() {
              </div>
              <div>
                 <p className="text-[10px] text-gray-400 uppercase leading-none mb-1">Karma</p>
-                <p className="text-sm font-bold text-white leading-none">{user.karma}</p>
+                <p className="text-sm font-bold text-white leading-none">
+                  {loading ? "..." : formatNumber(profile?.karma_points || 0)}
+                </p>
              </div>
           </motion.div>
 
@@ -68,7 +96,9 @@ export function DashboardHeader() {
              </div>
              <div>
                 <p className="text-[10px] text-gray-400 uppercase leading-none mb-1">Wallet</p>
-                <p className="text-sm font-bold text-white leading-none">{user.wallet}</p>
+                <p className="text-sm font-bold text-white leading-none">
+                  {loading ? "..." : `${profile?.wallet_balance || 0} USDT`}
+                </p>
              </div>
           </motion.div>
 
@@ -79,14 +109,16 @@ export function DashboardHeader() {
                 whileHover={{ opacity: 0.8 }}
               >
                  <Avatar className="h-10 w-10 border-2 border-[#866bff]">
-                    <AvatarImage src={user.avatar} />
-                    <AvatarFallback>IO</AvatarFallback>
+                    <AvatarImage src={avatarUrl} />
+                    <AvatarFallback>{initials}</AvatarFallback>
                  </Avatar>
                  <div className="hidden md:block">
                     <p className="text-sm font-bold text-white leading-none flex items-center gap-1">
-                       {user.name} <RiArrowDownSLine className="w-3 h-3 text-gray-400" />
+                       {loading ? "Loading..." : displayName} <RiArrowDownSLine className="w-3 h-3 text-gray-400" />
                     </p>
-                    <p className="text-[10px] text-gray-400 uppercase leading-none mt-1 text-[#99ee2d]">Level {user.level}</p>
+                    <p className="text-[10px] text-gray-400 uppercase leading-none mt-1 text-[#99ee2d]">
+                      Level {profile?.level || 1}
+                    </p>
                  </div>
               </motion.div>
             </DropdownMenuTrigger>
@@ -112,7 +144,7 @@ export function DashboardHeader() {
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/10" />
               <DropdownMenuItem 
-                onClick={() => router.push("/onboarding")}
+                onClick={handleLogout}
                 className="rounded-xl cursor-pointer hover:bg-red-500/10 focus:bg-red-500/10 text-red-400 focus:text-red-400"
               >
                 <RiLogoutBoxLine className="w-4 h-4 mr-2" />

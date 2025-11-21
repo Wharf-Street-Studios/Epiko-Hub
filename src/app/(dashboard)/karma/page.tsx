@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,8 +12,41 @@ import {
   RiShoppingBag3Line 
 } from "@remixicon/react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { getKarmaBalance, getKarmaTransactions, getMonthlyKarmaEarnings, KarmaTransaction } from "@/lib/api/karma";
+import { toast } from "sonner";
 
 export default function KarmaPage() {
+  const { user } = useAuth();
+  const [balance, setBalance] = useState<number>(0);
+  const [monthlyEarnings, setMonthlyEarnings] = useState<number>(0);
+  const [history, setHistory] = useState<KarmaTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadKarmaData() {
+      if (user) {
+        try {
+          const [userBalance, userTransactions, userMonthly] = await Promise.all([
+            getKarmaBalance(user.id),
+            getKarmaTransactions(user.id),
+            getMonthlyKarmaEarnings(user.id)
+          ]);
+          setBalance(userBalance);
+          setHistory(userTransactions);
+          setMonthlyEarnings(userMonthly);
+        } catch (error) {
+          console.error("Error loading karma data:", error);
+          toast.error("Failed to load karma data");
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadKarmaData();
+  }, [user]);
+
   return (
     <motion.div 
       className="p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto"
@@ -37,7 +70,9 @@ export default function KarmaPage() {
              <CardContent className="p-8 flex flex-col md:flex-row justify-between items-center gap-8">
                 <div>
                    <p className="text-purple-200 mb-1">Total Karma Balance</p>
-                   <h2 className="text-6xl font-bold font-mono mb-4">46,843</h2>
+                   <h2 className="text-6xl font-bold font-mono mb-4">
+                     {loading ? "..." : balance.toLocaleString()}
+                   </h2>
                    <div className="flex items-center gap-2 text-sm text-purple-100 bg-black/20 px-3 py-1 rounded-full w-fit">
                       <RiStarFill className="w-4 h-4 text-[#99ee2d]" />
                       <span>Top 5% of players this month</span>
@@ -65,22 +100,25 @@ export default function KarmaPage() {
              </CardHeader>
              <CardContent>
                 <div className="space-y-4">
+                   {/* Mock breakdown for now as we don't have detailed source tracking yet */}
                    <div className="flex justify-between items-center">
                       <span className="text-gray-400">Epiko Regal</span>
-                      <span className="font-bold">+1,200</span>
+                      <span className="font-bold">+{Math.floor(monthlyEarnings * 0.6)}</span>
                    </div>
                    <div className="flex justify-between items-center">
                       <span className="text-gray-400">Tournaments</span>
-                      <span className="font-bold">+500</span>
+                      <span className="font-bold">+{Math.floor(monthlyEarnings * 0.3)}</span>
                    </div>
                    <div className="flex justify-between items-center">
                       <span className="text-gray-400">Daily Login</span>
-                      <span className="font-bold">+150</span>
+                      <span className="font-bold">+{Math.floor(monthlyEarnings * 0.1)}</span>
                    </div>
                    <div className="h-px bg-white/5 my-2" />
                    <div className="flex justify-between items-center text-lg">
                       <span>Total</span>
-                      <span className="font-bold text-[#99ee2d]">1,850</span>
+                      <span className="font-bold text-[#99ee2d]">
+                        {loading ? "..." : monthlyEarnings.toLocaleString()}
+                      </span>
                    </div>
                 </div>
              </CardContent>
@@ -98,20 +136,30 @@ export default function KarmaPage() {
           </CardHeader>
           <CardContent>
              <div className="space-y-0">
-                {[1,2,3,4,5].map(i => (
-                   <div key={i} className="flex justify-between items-center py-4 border-b border-white/5 last:border-0 hover:bg-white/5 px-4 -mx-4 transition-colors">
-                      <div className="flex items-center gap-4">
-                         <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/5">
-                            {i % 2 === 0 ? <RiStarFill className="w-5 h-5 text-[#99ee2d]" /> : <RiGiftLine className="w-5 h-5 text-[#866bff]" />}
-                         </div>
-                         <div>
-                            <p className="font-medium text-white">{i % 2 === 0 ? 'Tournament Reward' : 'Daily Challenge'}</p>
-                            <p className="text-xs text-gray-500">Oct {20-i}, 2023</p>
-                         </div>
-                      </div>
-                      <span className="font-bold text-[#99ee2d] text-lg">+{i * 50}</span>
-                   </div>
-                ))}
+                {loading ? (
+                  <div className="text-center text-gray-500 py-8">Loading history...</div>
+                ) : history.length === 0 ? (
+                  <div className="text-center text-gray-500 py-8">No history found</div>
+                ) : (
+                  history.map((tx) => (
+                     <div key={tx.id} className="flex justify-between items-center py-4 border-b border-white/5 last:border-0 hover:bg-white/5 px-4 -mx-4 transition-colors">
+                        <div className="flex items-center gap-4">
+                           <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/5">
+                              {tx.amount > 0 ? <RiStarFill className="w-5 h-5 text-[#99ee2d]" /> : <RiGiftLine className="w-5 h-5 text-[#866bff]" />}
+                           </div>
+                           <div>
+                              <p className="font-medium text-white capitalize">{tx.description}</p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(tx.created_at).toLocaleDateString()}
+                              </p>
+                           </div>
+                        </div>
+                        <span className={`font-bold text-lg ${tx.amount > 0 ? 'text-[#99ee2d]' : 'text-red-400'}`}>
+                          {tx.amount > 0 ? '+' : ''}{tx.amount}
+                        </span>
+                     </div>
+                  ))
+                )}
              </div>
           </CardContent>
        </Card>
