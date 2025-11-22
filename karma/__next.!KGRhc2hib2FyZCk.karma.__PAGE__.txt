@@ -1,9 +1,0 @@
-1:"$Sreact.fragment"
-2:I[83881,["/Epiko-Hub/_next/static/chunks/ef0042977179d8b9.js","/Epiko-Hub/_next/static/chunks/89664c929b8de730.js"],"ClientPageRoot"]
-3:I[58750,["/Epiko-Hub/_next/static/chunks/af2cf0d585ca279f.js","/Epiko-Hub/_next/static/chunks/6d97a7073e040037.js","/Epiko-Hub/_next/static/chunks/72b23dcfa08eeb2a.js","/Epiko-Hub/_next/static/chunks/e4b4921c798a885e.js","/Epiko-Hub/_next/static/chunks/834a6d50aa79ff27.js","/Epiko-Hub/_next/static/chunks/76fb1abc0c7afbca.js","/Epiko-Hub/_next/static/chunks/fb620152af61bf5a.js","/Epiko-Hub/_next/static/chunks/303bf7e79cb07a19.js"],"default"]
-6:I[95127,["/Epiko-Hub/_next/static/chunks/ef0042977179d8b9.js","/Epiko-Hub/_next/static/chunks/89664c929b8de730.js"],"OutletBoundary"]
-7:"$Sreact.suspense"
-0:{"buildId":"d-wLRP-6G9rwVNkxx-0i4","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/Epiko-Hub/_next/static/chunks/76fb1abc0c7afbca.js","async":true}],["$","script","script-1",{"src":"/Epiko-Hub/_next/static/chunks/fb620152af61bf5a.js","async":true}],["$","script","script-2",{"src":"/Epiko-Hub/_next/static/chunks/303bf7e79cb07a19.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
-4:{}
-5:{}
-8:null
