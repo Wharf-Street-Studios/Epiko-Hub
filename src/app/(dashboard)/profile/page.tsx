@@ -13,7 +13,8 @@ import {
   RiMapPinLine, 
   RiCalendarLine,
   RiDiscordLine,
-  RiLoader4Line
+  RiLoader4Line,
+  RiUserUnfollowLine
 } from "@remixicon/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -22,6 +23,7 @@ import { getUserProfile, UserProfile } from "@/lib/api/users";
 import { getUserGames } from "@/lib/api/games";
 import { getUserNFTs } from "@/lib/api/nfts";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -74,8 +76,14 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-400">
-        Profile not found
+      <div className="min-h-screen flex items-center justify-center">
+        <EmptyState 
+          icon={RiUserUnfollowLine}
+          title="Profile Not Found"
+          description="We couldn't find the profile you're looking for. It might have been deleted or doesn't exist."
+          actionLabel="Go Home"
+          onAction={() => router.push("/")}
+        />
       </div>
     );
   }

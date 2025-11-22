@@ -20,6 +20,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { getGames, getUserGames, toggleGameInstallation, Game, UserGame } from "@/lib/api/games";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function GamesPage() {
   const { user } = useAuth();
@@ -278,28 +279,22 @@ export default function GamesPage() {
                })}
              </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-32 text-gray-500 space-y-6">
-               <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center border border-white/5">
-                 <RiDownloadCloudLine className="w-10 h-10 opacity-40" />
-               </div>
-               <div className="text-center">
-                  <h3 className="text-xl font-bold text-white mb-2">No Games Installed</h3>
-                  <p className="max-w-sm mx-auto">Install games from the "All Games" tab to see them here.</p>
-               </div>
-            </div>
+            <EmptyState 
+             icon={RiDownloadCloudLine}
+             title="No Games Installed"
+             description="Install games from the 'All Games' tab to see them here."
+             actionLabel="Browse Games"
+             onAction={() => document.querySelector('[value=all]')?.dispatchEvent(new MouseEvent('click', {bubbles: true}))}
+          />
           )}
         </TabsContent>
 
         <TabsContent value="updates" className="mt-0">
-          <div className="flex flex-col items-center justify-center py-32 text-gray-500 space-y-6">
-             <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center border border-white/5">
-               <RiTimeLine className="w-10 h-10 opacity-40" />
-             </div>
-             <div className="text-center">
-                <h3 className="text-xl font-bold text-white mb-2">Everything is up to date</h3>
-                <p className="max-w-sm mx-auto">You're running the latest versions of all your games.</p>
-             </div>
-          </div>
+          <EmptyState 
+             icon={RiCheckLine}
+             title="Everything is up to date"
+             description="You're running the latest versions of all your games."
+          />
         </TabsContent>
       </Tabs>
     </motion.div>

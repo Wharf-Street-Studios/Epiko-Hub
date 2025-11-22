@@ -23,6 +23,7 @@ import {
   Notification 
 } from "@/lib/api/notifications";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const getIconForType = (type: string) => {
   switch (type) {
@@ -199,9 +200,11 @@ export default function NotificationsPage() {
              <AnimatePresence mode="wait">
                 <TabsContent value={activeTab} className="space-y-4 mt-0">
                    {filteredNotifications.length === 0 ? (
-                     <div className="text-center text-gray-500 py-12">
-                       No notifications found
-                     </div>
+                     <EmptyState 
+                       icon={RiNotification3Line}
+                       title="No Notifications"
+                       description="You're all caught up! Check back later for updates."
+                     />
                    ) : (
                      filteredNotifications.map((notification) => (
                        <NotificationItem 

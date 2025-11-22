@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { getWalletBalance, getTransactions, Transaction } from "@/lib/api/wallet";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // Mock chart data for now as we don't have historical balance data yet
 const chartData = [
@@ -164,7 +165,11 @@ export default function WalletPage() {
                 {loading ? (
                   <div className="text-center text-gray-500 py-8">Loading transactions...</div>
                 ) : transactions.length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">No transactions found</div>
+                  <EmptyState 
+                  icon={RiWallet3Line}
+                  title="No transactions found"
+                  description="Your transaction history will appear here once you make a transaction."
+                />
                 ) : (
                   transactions.map((tx) => (
                      <div key={tx.id} className="flex justify-between items-center border-b border-white/5 pb-4 last:border-0">

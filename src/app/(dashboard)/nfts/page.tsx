@@ -10,11 +10,14 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { getUserNFTs, NFT } from "@/lib/api/nfts";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useRouter } from "next/navigation";
 
 export default function NFTsPage() {
   const { user } = useAuth();
   const [nfts, setNfts] = useState<NFT[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     async function loadNFTs() {
@@ -57,15 +60,13 @@ export default function NFTsPage() {
           <Loader2 className="w-8 h-8 text-[#866bff] animate-spin" />
         </div>
       ) : nfts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 text-gray-500 space-y-6">
-           <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center border border-white/5">
-             <Gem className="w-10 h-10 opacity-40" />
-           </div>
-           <div className="text-center">
-              <h3 className="text-xl font-bold text-white mb-2">No NFTs Found</h3>
-              <p className="max-w-sm mx-auto">You don't have any NFTs in your collection yet.</p>
-           </div>
-        </div>
+        <EmptyState 
+          icon={Gem}
+          title="No NFTs Found"
+          description="You don't have any NFTs in your collection yet. Visit the market to start collecting."
+          actionLabel="Go to Market"
+          onAction={() => router.push("/market")}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {nfts.map((nft, index) => (

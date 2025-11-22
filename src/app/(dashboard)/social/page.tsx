@@ -22,6 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getPosts, createPost, likePost, unlikePost, getUserLikedPostIds, subscribeToNewPosts, Post } from "@/lib/api/social";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface UIPost extends Post {
   isLiked: boolean;
@@ -206,7 +207,14 @@ export default function SocialPage() {
            </motion.div>
 
            {/* Posts Stream */}
-           {posts.map((post, idx) => (
+           {posts.length === 0 ? (
+              <EmptyState 
+                icon={MessageSquare}
+                title="No posts yet"
+                description="Be the first to share something with the community!"
+              />
+            ) : (
+              posts.map((post, idx) => (
               <motion.div 
                 key={post.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -256,7 +264,7 @@ export default function SocialPage() {
                     </CardFooter>
                  </Card>
               </motion.div>
-           ))}
+           )))}
         </div>
 
         {/* Right Sidebar - Trending */}

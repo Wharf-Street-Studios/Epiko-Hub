@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { getKarmaBalance, getKarmaTransactions, getMonthlyKarmaEarnings, KarmaTransaction } from "@/lib/api/karma";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function KarmaPage() {
   const { user } = useAuth();
@@ -139,7 +140,11 @@ export default function KarmaPage() {
                 {loading ? (
                   <div className="text-center text-gray-500 py-8">Loading history...</div>
                 ) : history.length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">No history found</div>
+                  <EmptyState 
+                  icon={RiHistoryLine}
+                  title="No history found"
+                  description="Your karma history will appear here once you start earning rewards."
+                />
                 ) : (
                   history.map((tx) => (
                      <div key={tx.id} className="flex justify-between items-center py-4 border-b border-white/5 last:border-0 hover:bg-white/5 px-4 -mx-4 transition-colors">
