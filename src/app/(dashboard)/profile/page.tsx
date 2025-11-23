@@ -96,14 +96,21 @@ export default function ProfilePage() {
     >
       {/* Header Banner */}
       <div className="relative h-[350px] overflow-hidden group">
-         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964&auto=format&fit=crop')] bg-cover bg-center">
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#12141d]/40 to-[#12141d]" />
-            <div className="absolute inset-0 bg-[#866bff]/10 mix-blend-overlay" />
+         {/* Dynamic Gradient Background */}
+         <div className="absolute inset-0 bg-[#0b0c10]">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1a1cd6]/20 via-[#12141d] to-[#0d0e12]" />
+            <div className="absolute top-0 left-0 w-full h-full opacity-30 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#866bff]/40 via-transparent to-transparent" />
+            <div className="absolute bottom-0 right-0 w-full h-full opacity-20 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-[#99ee2d]/30 via-transparent to-transparent" />
          </div>
          
          {/* Animated ambient effects */}
-         <div className="absolute -top-[50%] -left-[20%] w-[80%] h-[150%] bg-[#866bff] rounded-full blur-[120px] opacity-20 animate-pulse" />
-         <div className="absolute -bottom-[50%] -right-[20%] w-[80%] h-[150%] bg-[#99ee2d] rounded-full blur-[120px] opacity-10 animate-pulse" style={{ animationDelay: "2s" }} />
+         <div className="absolute -top-[50%] -left-[20%] w-[80%] h-[150%] bg-[#866bff] rounded-full blur-[150px] opacity-15 animate-pulse" />
+         <div className="absolute -bottom-[50%] -right-[20%] w-[80%] h-[150%] bg-[#99ee2d] rounded-full blur-[150px] opacity-10 animate-pulse" style={{ animationDelay: "2s" }} />
+         
+         {/* Grid overlay for tech feel */}
+         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_50%,transparent_100%)]" />
+         
+         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#12141d]/50 to-[#12141d]" />
       </div>
       
       <div className="px-4 md:px-8 pb-8 -mt-24 relative z-10 max-w-[1600px] mx-auto">
