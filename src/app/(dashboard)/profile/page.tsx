@@ -95,31 +95,44 @@ export default function ProfilePage() {
       className="min-h-screen"
     >
       {/* Header Banner */}
-      <div className="relative h-[280px]">
-         <div className="absolute inset-0 bg-gradient-to-r from-[#8060FF] to-[#5A29C3]">
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+      <div className="relative h-[350px] overflow-hidden group">
+         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964&auto=format&fit=crop')] bg-cover bg-center">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#12141d]/40 to-[#12141d]" />
+            <div className="absolute inset-0 bg-[#866bff]/10 mix-blend-overlay" />
          </div>
-         <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#12141d] to-transparent" />
+         
+         {/* Animated ambient effects */}
+         <div className="absolute -top-[50%] -left-[20%] w-[80%] h-[150%] bg-[#866bff] rounded-full blur-[120px] opacity-20 animate-pulse" />
+         <div className="absolute -bottom-[50%] -right-[20%] w-[80%] h-[150%] bg-[#99ee2d] rounded-full blur-[120px] opacity-10 animate-pulse" style={{ animationDelay: "2s" }} />
       </div>
       
-      <div className="px-4 md:px-8 pb-8 -mt-20 relative z-10 max-w-[1600px] mx-auto">
+      <div className="px-4 md:px-8 pb-8 -mt-24 relative z-10 max-w-[1600px] mx-auto">
          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
             <div className="flex flex-col md:flex-row items-center md:items-end gap-8 text-center md:text-left w-full md:w-auto">
                <motion.div 
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", delay: 0.2 }}
-                  className="p-1.5 bg-[#12141d] rounded-full"
+                  className="relative group"
                >
-                  <Avatar className="w-40 h-40 border-4 border-[#12141d]">
-                     <AvatarImage src={profile.avatar_url || ""} />
-                     <AvatarFallback>{profile.display_name?.substring(0, 2).toUpperCase() || "EP"}</AvatarFallback>
-                  </Avatar>
+                  <div className="absolute -inset-0.5 bg-gradient-to-br from-[#866bff] to-[#99ee2d] rounded-full opacity-75 blur group-hover:opacity-100 transition duration-1000 group-hover:duration-200" />
+                  <div className="relative p-1.5 bg-[#12141d] rounded-full">
+                    <Avatar className="w-32 h-32 md:w-44 md:h-44 border-4 border-[#12141d] shadow-2xl">
+                       <AvatarImage src={profile.avatar_url || ""} className="object-cover" />
+                       <AvatarFallback className="bg-gradient-to-br from-[#866bff] to-[#5A29C3] text-white text-3xl font-bold">
+                          {profile.display_name?.substring(0, 2).toUpperCase() || "EP"}
+                       </AvatarFallback>
+                    </Avatar>
+                  </div>
+                  {/* Online Status */}
+                  <div className="absolute bottom-4 right-4 w-6 h-6 bg-[#99ee2d] rounded-full border-4 border-[#12141d] shadow-[0_0_10px_#99ee2d] z-20" />
                </motion.div>
                <div className="mb-2 space-y-2">
                   <div className="flex items-center justify-center md:justify-start gap-3">
                      <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">{profile.display_name || "Epiko User"}</h1>
-                     <Badge className="bg-[#99ee2d] text-black hover:bg-[#99ee2d] px-2 py-0.5 text-xs shadow-[0_0_10px_rgba(153,238,45,0.4)]">Verified</Badge>
+                     <Badge className="bg-[#99ee2d] text-black hover:bg-[#88d428] px-3 py-1 text-xs font-bold shadow-[0_0_15px_rgba(153,238,45,0.4)] border-none">
+                        Verified Pro
+                     </Badge>
                   </div>
                   <p className="text-gray-400 font-medium text-lg">@{profile.username || "user"}</p>
                   <div className="flex items-center justify-center md:justify-start gap-4 text-sm text-gray-500">
