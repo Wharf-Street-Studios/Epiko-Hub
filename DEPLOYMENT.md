@@ -1,76 +1,59 @@
-# GitHub Pages Deployment Guide
+# Epiko Hub Deployment Guide
 
-## Prerequisites
+This guide explains how to deploy the Epiko Hub application to GitHub Pages.
 
-Before deploying to GitHub Pages, you need to configure the following:
+## Overview
 
-### 1. Add GitHub Secrets
+The application is a Next.js app configured for static export. It uses **mock data** for all functionality, so no backend configuration is required.
 
-Go to your repository settings and add the following secrets:
-- Navigate to: `Settings` → `Secrets and variables` → `Actions` → `New repository secret`
+## Deployment Steps
 
-Add these two secrets:
-- **NEXT_PUBLIC_SUPABASE_URL**: Your Supabase project URL
-- **NEXT_PUBLIC_SUPABASE_ANON_KEY**: Your Supabase anonymous/public key
+### 1. Configure GitHub Pages
 
-### 2. Configure GitHub Pages
+1. Go to your repository settings on GitHub.
+2. Navigate to **Pages** (in the left sidebar).
+3. Under **"Build and deployment"**:
+   - **Source**: Select **"GitHub Actions"**.
+   - (Do not select "Deploy from a branch")
 
-1. Go to your repository: `https://github.com/Wharf-Street-Studios/Epiko-Hub`
-2. Navigate to: `Settings` → `Pages`
-3. Under "Build and deployment":
-   - **Source**: Select "GitHub Actions"
-   - This allows the workflow to deploy directly
+### 2. Trigger Deployment
 
-### 3. Deploy
+The deployment is automated via GitHub Actions. It triggers automatically when you:
+- Push changes to the `main` branch
+- Manually trigger the workflow from the Actions tab
 
-Once the above steps are complete, deployment will happen automatically:
-- Push to the `main` branch, or
-- Manually trigger the workflow from the "Actions" tab
+### 3. Monitor Deployment
 
-## Deployment Workflow
+1. Go to the **Actions** tab in your repository.
+2. Click on the latest workflow run ("Deploy to GitHub Pages").
+3. Wait for the build and deploy jobs to complete (usually 2-3 minutes).
 
-The deployment process consists of two jobs:
+### 4. Access the Site
 
-1. **Build Job**:
-   - Checks out the code
-   - Sets up Node.js 20
-   - Installs dependencies
-   - Builds the Next.js app with Supabase environment variables
-   - Uploads the build artifact
+Once deployed, your site will be available at:
+`https://wharf-street-studios.github.io/Epiko-Hub/`
 
-2. **Deploy Job**:
-   - Takes the build artifact
-   - Deploys to GitHub Pages
-   - Provides the deployment URL
+## Local Development
 
-## Accessing Your Site
+To run the application locally:
 
-After successful deployment, your site will be available at:
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
 ```
-https://wharf-street-studios.github.io/Epiko-Hub/
-```
+
+The app will be available at `http://localhost:3000/Epiko-Hub`.
 
 ## Troubleshooting
 
-### Build Fails with "Cannot read properties of undefined"
-- Ensure both Supabase secrets are properly configured in GitHub
-- Check that the secret names match exactly: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+### 404 Not Found
+- Ensure the repository name matches the `basePath` in `next.config.ts`.
+- Verify that the GitHub Pages source is set to "GitHub Actions".
+- Check the Actions tab for any build failures.
 
-### 404 Error on Deployment
-- Verify that GitHub Pages source is set to "GitHub Actions" (not "Deploy from a branch")
-- Check that the `basePath` in `next.config.ts` matches your repository name: `/Epiko-Hub`
-
-### Assets Not Loading
-- The `.nojekyll` file is automatically added to prevent Jekyll processing
-- Ensure `assetPrefix` in `next.config.ts` is set to `/Epiko-Hub/`
-
-## Local Testing
-
-To test the production build locally:
-
-```bash
-npm run build
-npx serve out
-```
-
-This will serve the static export on `http://localhost:3000` (or another port if 3000 is busy).
+### Build Errors
+- Run `npm run build` locally to identify any issues before pushing.
+- Ensure all TypeScript errors are resolved.
