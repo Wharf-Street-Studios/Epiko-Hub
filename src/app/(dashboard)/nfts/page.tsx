@@ -83,10 +83,11 @@ export default function NFTsPage() {
                   
                   <div className="absolute top-4 right-4">
                     <Badge className={`
-                      ${nft.rarity === 'Legendary' ? 'bg-orange-500/80 text-orange-100 shadow-orange-500/20' : 
-                        nft.rarity === 'Epic' ? 'bg-purple-500/80 text-purple-100 shadow-purple-500/20' : 
-                        nft.rarity === 'Rare' ? 'bg-blue-500/80 text-blue-100 shadow-blue-500/20' : 'bg-gray-500/80 text-gray-100'}
-                      border-none backdrop-blur-md shadow-lg px-3 py-1
+                      ${nft.rarity === 'legendary' ? 'bg-orange-500/80 text-orange-100 shadow-orange-500/20' : 
+                        nft.rarity === 'epic' ? 'bg-purple-500/80 text-purple-100 shadow-purple-500/20' :
+                        nft.rarity === 'rare' ? 'bg-blue-500/80 text-blue-100 shadow-blue-500/20' :
+                        'bg-gray-500/80 text-gray-100 shadow-gray-500/20'}
+                      backdrop-blur-md border border-white/10 shadow-lg
                     `}>
                       {nft.rarity}
                     </Badge>

@@ -11,7 +11,6 @@ import {
   RiEdit2Line,
   RiGamepadLine
 } from "@remixicon/react";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
@@ -29,7 +28,6 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   const handleSendOtp = async () => {
     if (!email) {
@@ -51,35 +49,12 @@ export default function OnboardingPage() {
       return;
     }
     setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token: otp,
-        type: 'email',
-      });
-
-      if (error) throw error;
-      if (!data.user) throw new Error("No user found");
-
-      setUserId(data.user.id);
-
-      // Check if user already has a profile/username
-      const profile = await getUserProfile(data.user.id);
-      
-      if (profile && profile.username) {
-        // User exists and has username, redirect to dashboard
-        toast.success("Welcome back!");
-        router.push("/");
-      } else {
-        // New user or no username, go to username step
-        setStep('username');
-      }
-    } catch (error: any) {
-      console.error("Error verifying OTP:", error);
-      toast.error(error.message || "Failed to verify OTP");
-    } finally {
-      setLoading(false);
-    }
+    
+    // Bypass authentication - just show success and redirect
+    setTimeout(() => {
+      toast.success("Welcome to Epiko Hub!");
+      router.push("/");
+    }, 500);
   };
 
   const handleCompleteProfile = async () => {

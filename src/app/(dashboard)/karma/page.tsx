@@ -35,7 +35,8 @@ export default function KarmaPage() {
           ]);
           setBalance(userBalance);
           setHistory(userTransactions);
-          setMonthlyEarnings(userMonthly);
+          // Use the last month's earnings
+          setMonthlyEarnings(userMonthly[userMonthly.length - 1] || 0);
         } catch (error) {
           console.error("Error loading karma data:", error);
           toast.error("Failed to load karma data");
@@ -153,7 +154,7 @@ export default function KarmaPage() {
                               {tx.amount > 0 ? <RiStarFill className="w-5 h-5 text-[#99ee2d]" /> : <RiGiftLine className="w-5 h-5 text-[#866bff]" />}
                            </div>
                            <div>
-                              <p className="font-medium text-white capitalize">{tx.description}</p>
+                              <p className="font-medium text-white capitalize">{tx.reason}</p>
                               <p className="text-xs text-gray-500">
                                 {new Date(tx.created_at).toLocaleDateString()}
                               </p>

@@ -70,7 +70,7 @@ export default function MarketPage() {
       }
       return [...prev, { id: product.id, quantity: 1, product }];
     });
-    toast.success(`Added ${product.name} to cart`);
+    toast.success(`Added ${product.title} to cart`);
   };
 
   const removeFromCart = (id: string) => {
@@ -99,9 +99,9 @@ export default function MarketPage() {
     try {
       // Process each item sequentially for now
       for (const item of cart) {
-        const success = await purchaseItem(user.id, item.id, item.quantity);
+        const success = await purchaseItem(user.id, item.id);
         if (!success) {
-          throw new Error(`Failed to purchase ${item.product.name}`);
+          throw new Error(`Failed to purchase ${item.product.title}`);
         }
       }
       
@@ -122,7 +122,7 @@ export default function MarketPage() {
 
   const filteredProducts = products
     .filter(p => selectedCategory === "All" || p.category === selectedCategory)
-    .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    .filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
   if (loading) {
     return (
@@ -195,10 +195,10 @@ export default function MarketPage() {
                                   key={item.id} 
                                   className="flex gap-4 bg-white/5 p-3 rounded-2xl border border-white/5"
                                 >
-                                   <img src={item.product.image_url} alt={item.product.name} className="w-20 h-20 object-cover rounded-xl" />
+                                   <img src={item.product.image_url} alt={item.product.title} className="w-20 h-20 object-cover rounded-xl" />
                                    <div className="flex-1 flex flex-col justify-between">
                                       <div>
-                                         <h4 className="font-bold text-white text-sm line-clamp-1">{item.product.name}</h4>
+                                         <h4 className="font-bold text-white text-sm line-clamp-1">{item.product.title}</h4>
                                          <p className="text-[#99ee2d] font-mono text-sm">${item.product.price}</p>
                                       </div>
                                       <div className="flex items-center justify-between mt-2">
@@ -285,14 +285,14 @@ export default function MarketPage() {
                          onClick={() => setSelectedProduct(product)}
                        >
                           <div className="aspect-[4/3] overflow-hidden relative bg-[#12141d]">
-                             <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                             <img src={product.image_url} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                              <div className="absolute top-3 right-3">
                                 <Badge className="bg-black/60 backdrop-blur-md text-white border border-white/10">{product.category}</Badge>
                              </div>
                           </div>
                           <CardContent className="p-5 flex-1 flex flex-col">
                              <div className="flex justify-between items-start mb-2">
-                                <h3 className="text-lg font-bold line-clamp-1">{product.name}</h3>
+                                <h3 className="text-lg font-bold line-clamp-1">{product.title}</h3>
                              </div>
                              <p className="text-gray-400 text-sm line-clamp-2 mb-4 flex-1">{product.description}</p>
                              <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
@@ -320,12 +320,12 @@ export default function MarketPage() {
       {/* Product Detail Dialog */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
          <DialogContent className="bg-[#1c1f2a] border-white/10 text-white max-w-3xl p-0 overflow-hidden rounded-3xl z-[100]">
-            <DialogTitle className="sr-only">{selectedProduct?.name || "Product Details"}</DialogTitle>
+            <DialogTitle className="sr-only">{selectedProduct?.title || "Product Details"}</DialogTitle>
             <DialogDescription className="sr-only">{selectedProduct?.description || "View product details"}</DialogDescription>
             {selectedProduct && (
                <div className="flex flex-col md:flex-row h-full">
                   <div className="md:w-1/2 h-64 md:h-auto relative">
-                     <img src={selectedProduct.image_url} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                     <img src={selectedProduct.image_url} alt={selectedProduct.title} className="w-full h-full object-cover" />
                      <div className="absolute inset-0 bg-gradient-to-t from-[#1c1f2a] to-transparent md:bg-gradient-to-r md:from-transparent md:to-[#1c1f2a]" />
                   </div>
                   <div className="md:w-1/2 p-6 md:p-8 flex flex-col">
@@ -335,7 +335,7 @@ export default function MarketPage() {
                            <RiCheckLine className="w-4 h-4 mr-1" /> In Stock
                         </div>
                      </div>
-                     <h2 className="text-3xl font-bold mb-2">{selectedProduct.name}</h2>
+                     <h2 className="text-3xl font-bold mb-2">{selectedProduct.title}</h2>
                      <p className="text-2xl font-bold text-[#99ee2d] mb-6">${selectedProduct.price}</p>
                      <p className="text-gray-400 leading-relaxed mb-8 flex-1">
                         {selectedProduct.description}

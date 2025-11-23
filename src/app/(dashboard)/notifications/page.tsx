@@ -78,7 +78,7 @@ const NotificationItem = ({ notification, onRead }: { notification: Notification
              {new Date(notification.created_at).toLocaleDateString()}
            </span>
         </div>
-        <p className="text-sm text-gray-400 leading-relaxed">{notification.description}</p>
+        <p className="text-sm text-gray-400 leading-relaxed">{notification.message}</p>
       </div>
       {!notification.read && (
         <div className="absolute top-5 right-5 w-2 h-2 rounded-full bg-[#99ee2d]" />
@@ -110,7 +110,7 @@ export default function NotificationsPage() {
     loadNotifications();
 
     if (user) {
-      const subscription = subscribeToNotifications(user.id, (newNotification) => {
+      const subscription = subscribeToNotifications((newNotification: Notification) => {
         setNotifications(prev => [newNotification, ...prev]);
         toast.info(`New notification: ${newNotification.title}`);
       });

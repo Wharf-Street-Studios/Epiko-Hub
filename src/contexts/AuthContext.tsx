@@ -1,9 +1,13 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { User } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/client'
-import { getUserProfile, UserProfile } from '@/lib/api/users'
+import { UserProfile } from '@/lib/api/users'
+import { mockData } from '@/lib/mockData'
+
+type User = {
+  id: string
+  email: string
+}
 
 type AuthContextType = {
   user: User | null
@@ -23,38 +27,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   useEffect(() => {
-    const fetchProfile = async (sessionUser: User | null) => {
-      if (sessionUser) {
-        const userProfile = await getUserProfile(sessionUser.id)
-        setProfile(userProfile)
-      } else {
-        setProfile(null)
-      }
+    // Simulate loading and auto-login with mock user
+    const timer = setTimeout(() => {
+      setUser(mockData.currentUser)
+      setProfile(mockData.profile)
       setLoading(false)
-    }
+    }, 500)
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      fetchProfile(session?.user ?? null)
-    })
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      fetchProfile(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [supabase.auth])
+    return () => clearTimeout(timer)
+  }, [])
 
   const signOut = async () => {
-    await supabase.auth.signOut()
     setUser(null)
     setProfile(null)
   }
