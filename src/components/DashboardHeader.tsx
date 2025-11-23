@@ -77,39 +77,41 @@ export function DashboardHeader() {
        </div>
 
        {/* Right Side Stats */}
-       <div className="flex items-center gap-6 w-full md:w-auto justify-end">
-          <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-2 cursor-pointer">
-             <div className="w-10 h-10 rounded-full bg-[#99ee2d]/10 border border-[#99ee2d]/50 flex items-center justify-center">
-                <RiStarLine className="w-5 h-5 text-[#99ee2d]" />
-             </div>
-             <div>
-                <p className="text-[10px] text-gray-400 uppercase leading-none mb-1">Karma</p>
-                <p className="text-sm font-bold text-white leading-none">
-                  {loading ? "..." : formatNumber(profile?.karma_points || 0)}
-                </p>
-             </div>
-          </motion.div>
+       <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 w-full md:w-auto">
+          <div className="flex items-center gap-4 md:gap-6">
+             <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-2 cursor-pointer">
+                <div className="w-10 h-10 rounded-full bg-[#99ee2d]/10 border border-[#99ee2d]/50 flex items-center justify-center">
+                   <RiStarLine className="w-5 h-5 text-[#99ee2d]" />
+                </div>
+                <div>
+                   <p className="text-[10px] text-gray-400 uppercase leading-none mb-1">Karma</p>
+                   <p className="text-sm font-bold text-white leading-none">
+                     {loading ? "..." : formatNumber(profile?.karma_points || 0)}
+                   </p>
+                </div>
+             </motion.div>
 
-          <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-2 cursor-pointer">
-             <div className="w-10 h-10 rounded-full bg-[#866bff]/10 border border-[#866bff]/50 flex items-center justify-center">
-                <RiWallet3Line className="w-5 h-5 text-[#866bff]" />
-             </div>
-             <div>
-                <p className="text-[10px] text-gray-400 uppercase leading-none mb-1">Wallet</p>
-                <p className="text-sm font-bold text-white leading-none">
-                  {loading ? "..." : `${profile?.wallet_balance || 0} USDT`}
-                </p>
-             </div>
-          </motion.div>
+             <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-2 cursor-pointer">
+                <div className="w-10 h-10 rounded-full bg-[#866bff]/10 border border-[#866bff]/50 flex items-center justify-center">
+                   <RiWallet3Line className="w-5 h-5 text-[#866bff]" />
+                </div>
+                <div>
+                   <p className="text-[10px] text-gray-400 uppercase leading-none mb-1">Wallet</p>
+                   <p className="text-sm font-bold text-white leading-none">
+                     {loading ? "..." : `${profile?.wallet_balance || 0} USDT`}
+                   </p>
+                </div>
+             </motion.div>
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <motion.div 
-                className="flex items-center gap-3 border-l border-white/10 pl-6 cursor-pointer"
+                className="flex items-center gap-3 md:border-l border-white/10 md:pl-6 cursor-pointer"
                 whileHover={{ opacity: 0.8 }}
               >
                  <Avatar className="h-10 w-10 border-2 border-[#866bff]">
-                    <AvatarImage src={avatarUrl} />
+                    <AvatarImage src={profile?.avatar_url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&q=80"} />
                     <AvatarFallback>{initials}</AvatarFallback>
                  </Avatar>
                  <div className="hidden md:block">

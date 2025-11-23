@@ -98,7 +98,8 @@ export default function ProfilePage() {
       <div className="relative h-[350px] overflow-hidden group">
          {/* Dynamic Gradient Background */}
          <div className="absolute inset-0 bg-[#0b0c10]">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#1a1cd6]/20 via-[#12141d] to-[#0d0e12]" />
+            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=1964&q=80')] bg-cover bg-center opacity-40 mix-blend-luminosity" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1a1cd6]/20 via-[#12141d]/80 to-[#0d0e12]" />
             <div className="absolute top-0 left-0 w-full h-full opacity-30 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#866bff]/40 via-transparent to-transparent" />
             <div className="absolute bottom-0 right-0 w-full h-full opacity-20 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-[#99ee2d]/30 via-transparent to-transparent" />
          </div>
