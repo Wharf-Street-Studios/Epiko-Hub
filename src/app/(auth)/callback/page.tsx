@@ -7,11 +7,12 @@ import { toast } from "sonner";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        const supabase = createClient();
+        
         // Get the code from the URL
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const access_token = hashParams.get('access_token');
@@ -39,7 +40,7 @@ export default function AuthCallbackPage() {
     };
 
     handleCallback();
-  }, [router, supabase]);
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-[#0a0b10] flex items-center justify-center">

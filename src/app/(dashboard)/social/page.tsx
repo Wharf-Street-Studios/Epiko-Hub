@@ -105,7 +105,7 @@ export default function SocialPage() {
     
     setPosting(true);
     try {
-      const newPost = await createPost(user.id, newPostContent);
+      const newPost = await createPost(newPostContent);
       if (newPost) {
         // Post will be added via subscription, but we can also add it manually if needed
         // For now, let's rely on subscription or add it manually to be instant

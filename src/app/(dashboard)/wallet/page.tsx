@@ -39,10 +39,10 @@ export default function WalletPage() {
       if (user) {
         try {
           const [userBalance, userTransactions] = await Promise.all([
-            getWalletBalance(user.id),
-            getTransactions(user.id)
+            getWalletBalance(),
+            getTransactions()
           ]);
-          setBalance(userBalance);
+          setBalance(userBalance.epiko); // Use epiko balance for now
           setTransactions(userTransactions);
         } catch (error) {
           console.error("Error loading wallet data:", error);
@@ -174,19 +174,19 @@ export default function WalletPage() {
                   transactions.map((tx) => (
                      <div key={tx.id} className="flex justify-between items-center border-b border-white/5 pb-4 last:border-0">
                         <div className="flex items-center gap-4">
-                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.type === 'credit' ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                              {tx.type === 'credit' ? <RiArrowLeftDownLine className="w-5 h-5 text-green-500" /> : <RiArrowRightUpLine className="w-5 h-5 text-red-500" />}
+                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${(tx.type === 'deposit' || tx.type === 'reward') ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                              {(tx.type === 'deposit' || tx.type === 'reward') ? <RiArrowLeftDownLine className="w-5 h-5 text-green-500" /> : <RiArrowRightUpLine className="w-5 h-5 text-red-500" />}
                            </div>
                            <div>
-                              <p className="font-medium capitalize">{tx.description || (tx.type === 'credit' ? 'Received Funds' : 'Sent Funds')}</p>
+                              <p className="font-medium capitalize">{tx.description || ((tx.type === 'deposit' || tx.type === 'reward') ? 'Received Funds' : 'Sent Funds')}</p>
                               <p className="text-xs text-gray-500">
                                 {new Date(tx.created_at).toLocaleDateString()} {new Date(tx.created_at).toLocaleTimeString()}
                               </p>
                            </div>
                         </div>
                         <div className="text-right">
-                           <p className={`font-bold ${tx.type === 'credit' ? 'text-green-400' : 'text-white'}`}>
-                              {tx.type === 'credit' ? '+' : '-'} {tx.amount.toFixed(2)}
+                           <p className={`font-bold ${(tx.type === 'deposit' || tx.type === 'reward') ? 'text-green-400' : 'text-white'}`}>
+                              {(tx.type === 'deposit' || tx.type === 'reward') ? '+' : '-'} {tx.amount.toFixed(2)}
                            </p>
                            <p className="text-xs text-gray-500 capitalize">{tx.status}</p>
                         </div>

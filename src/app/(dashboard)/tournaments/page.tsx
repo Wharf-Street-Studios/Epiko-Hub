@@ -68,7 +68,7 @@ export default function TournamentsPage() {
   useEffect(() => {
     async function checkRegistration() {
       if (user && selectedTournament) {
-        const registered = await isUserRegistered(user.id, selectedTournament.id);
+        const registered = await isUserRegistered(selectedTournament.id);
         setAlreadyRegistered(registered);
       }
     }
@@ -83,7 +83,7 @@ export default function TournamentsPage() {
 
     setIsRegistering(true);
     try {
-      const success = await registerForTournament(user.id, selectedTournament.id, teamName);
+      const success = await registerForTournament(selectedTournament.id, teamName);
       if (success) {
         toast.success("Successfully registered for tournament!");
         setRegistrationStep(1);
@@ -103,7 +103,7 @@ export default function TournamentsPage() {
     }
   };
 
-  const activeTournaments = tournaments.filter(t => t.status === 'active');
+  const activeTournaments = tournaments.filter(t => t.status === 'ongoing');
   const upcomingTournaments = tournaments.filter(t => t.status === 'upcoming');
   const completedTournaments = tournaments.filter(t => t.status === 'completed');
 

@@ -91,8 +91,8 @@ export default function Dashboard() {
           setProfile(userProfile);
           
           // Calculate stats
-          const gamesPlayed = userGames.reduce((acc, game) => acc + game.matches_played, 0);
-          const gamesWon = userGames.reduce((acc, game) => acc + game.wins, 0);
+          const gamesPlayed = userGames.reduce((acc, game) => acc + (game.matches_played || 0), 0);
+          const gamesWon = userGames.reduce((acc, game) => acc + (game.wins || 0), 0);
           const appsInstalled = userGames.filter(g => g.installed).length;
 
           setStats({

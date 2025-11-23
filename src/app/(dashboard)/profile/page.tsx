@@ -48,7 +48,7 @@ export default function ProfilePage() {
           
           setProfile(userProfile);
           
-          const matches = userGames.reduce((acc, game) => acc + game.matches_played, 0);
+          const matches = userGames.reduce((acc, game) => acc + (game.matches_played || 0), 0);
           
           setStats({
             matches,
@@ -124,7 +124,7 @@ export default function ProfilePage() {
                   <p className="text-gray-400 font-medium text-lg">@{profile.username || "user"}</p>
                   <div className="flex items-center justify-center md:justify-start gap-4 text-sm text-gray-500">
                      <span className="flex items-center gap-1"><RiMapPinLine className="w-4 h-4" /> Tokyo, Japan</span>
-                     <span className="flex items-center gap-1"><RiCalendarLine className="w-4 h-4" /> Joined {new Date(profile.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</span>
+                     <span className="flex items-center gap-1"><RiCalendarLine className="w-4 h-4" /> Joined {new Date(profile.created_at || Date.now()).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</span>
                   </div>
                </div>
             </div>
